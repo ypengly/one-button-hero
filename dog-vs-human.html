@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DOG VS HUMAN</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#7FCBE0; --grass:#8FC93A; --floor:#F2D9A5; --wall:#C98A5B;
+    --mustard:#FFB703; --coral:#FF6B6B; --ink:#3A2E28; --paper:#FFF6E9;
+    --dog:#9A6B3F; --dogEar:#5E3E22;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;
+    font-family:'Baloo 2', system-ui, -apple-system, 'Comic Sans MS', sans-serif;color:var(--ink);
+    overflow:hidden; overscroll-behavior:none;}
+  #app{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(180deg,#BEE7F5 0%,#7FCBE0 45%,#8FC93A 100%);}
+  .cloud{position:absolute;background:#fff;border-radius:50px;opacity:.85;filter:blur(.3px);}
+  .cloud::before,.cloud::after{content:'';position:absolute;background:#fff;border-radius:50%;}
+  .paw{position:absolute;font-size:34px;opacity:.35;transform:rotate(var(--r,0deg));}
+  .screen{width:100%;height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center;}
+  .screen.active{display:flex;}
+  h1{font-size:clamp(32px,7vw,64px);font-weight:800;margin:0;color:#fff;
+     -webkit-text-stroke:3px var(--ink);text-shadow:4px 4px 0 var(--coral);letter-spacing:1px;}
+  h1 span{color:var(--mustard);-webkit-text-stroke:3px var(--ink);}
+  p.sub{font-size:clamp(14px,2.5vw,18px);max-width:480px;font-weight:500;}
+  .card{background:var(--paper);border:4px solid var(--ink);border-radius:22px;
+    box-shadow:0 8px 0 rgba(0,0,0,.25);padding:22px 26px;max-width:520px;width:100%;}
+  button{font-family:inherit;font-weight:700;font-size:17px;padding:14px 26px;border-radius:16px;
+    border:3px solid var(--ink);cursor:pointer;background:var(--mustard);box-shadow:0 5px 0 var(--ink);
+    transition:transform .08s, box-shadow .08s, filter .12s;}
+  button:hover:not(:disabled){filter:brightness(1.08);}
+  button:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 var(--ink);}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  button.secondary{background:#fff;}
+  button.big{font-size:22px;background:var(--coral);color:#fff;}
+  button:focus-visible{outline:3px solid #2A6F97;outline-offset:2px;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  .choice{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:6px 0 14px;}
+  .choice button{opacity:.6;}
+  .choice button.sel{opacity:1;background:var(--grass);}
+  #gameWrap{position:relative;width:min(96vw,900px);height:min(80vh,560px);}
+  canvas{width:100%;height:100%;display:block;border-radius:18px;border:4px solid var(--ink);background:var(--floor);touch-action:none;}
+  #hud{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;
+    font-weight:800;font-size:14px;pointer-events:none;}
+  .pill{background:var(--paper);border:3px solid var(--ink);border-radius:14px;padding:5px 12px;box-shadow:0 3px 0 var(--ink);}
+  #combo{position:absolute;top:44px;left:50%;transform:translateX(-50%);font-size:26px;font-weight:800;
+    color:var(--coral);-webkit-text-stroke:1.5px var(--ink);opacity:0;transition:opacity .2s;pointer-events:none;}
+  #touchpad{position:absolute;bottom:10px;left:10px;right:10px;display:flex;justify-content:space-between;pointer-events:none;}
+  #touchpad button{pointer-events:auto;width:56px;height:56px;border-radius:50%;font-size:20px;padding:0;}
+  #dpad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px;}
+  #dpad button{width:44px;height:44px;border-radius:10px;font-size:16px;}
+  .actions{display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+  table{border-collapse:collapse;width:100%;margin:8px 0;font-size:15px;}
+  td{padding:4px 8px;border-bottom:2px dashed #d8c7a8;text-align:left;}
+  #footnote{font-size:12px;opacity:.7;max-width:480px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="cloud" style="width:90px;height:34px;top:8%;left:10%"></div>
+  <div class="cloud" style="width:70px;height:26px;top:16%;left:70%"></div>
+  <div class="cloud" style="width:110px;height:40px;top:6%;left:45%"></div>
+  <div class="paw" style="top:20%;left:6%;--r:-15deg">🐾</div>
+  <div class="paw" style="top:70%;left:85%;--r:20deg">🐾</div>
+  <div class="paw" style="top:80%;left:12%;--r:8deg">🐾</div>
+
+  <div id="menu" class="screen active">
+    <h1>DOG <span>vs</span> HUMAN</h1>
+    <p class="sub">You're the dog. Cause chaos before the humans finish their chores and catch you.</p>
+    <div class="card">
+      <button class="big" onclick="goTo('setup')">Play</button>
+      <div class="row" style="margin-top:12px">
+        <button class="secondary" onclick="goTo('settings')">Settings</button>
+      </div>
+    </div>
+    <p id="footnote">This build ships the House map with the full core loop. Apartment, Backyard, Restaurant, Office and School are staged next using the same systems.</p>
+  </div>
+
+  <div id="settings" class="screen">
+    <h1 style="font-size:36px">Settings</h1>
+    <div class="card">
+      <p><label>Sound volume<br><input id="volSlider" type="range" min="0" max="100" value="60" style="width:100%"></label></p>
+      <button onclick="goTo('menu')">Back</button>
+    </div>
+  </div>
+
+  <div id="setup" class="screen">
+    <h1 style="font-size:36px">Get Ready</h1>
+    <div class="card">
+      <p><b>Map</b></p>
+      <div class="choice" id="mapChoice">
+        <button class="sel" data-v="house">🏠 House</button>
+        <button data-v="apt" disabled title="Coming soon">🏢 Apartment</button>
+        <button data-v="yard" disabled title="Coming soon">🌳 Backyard</button>
+        <button data-v="rest" disabled title="Coming soon">🍽️ Restaurant</button>
+        <button data-v="office" disabled title="Coming soon">💼 Office</button>
+        <button data-v="school" disabled title="Coming soon">🏫 School</button>
+      </div>
+      <p><b>Dog</b></p>
+      <div class="choice" id="dogChoice">
+        <button class="sel" data-v="pup">🐶 Scrappy Pup</button>
+        <button data-v="hound">🐕 Lazy Hound</button>
+        <button data-v="terrier">🐩 Zoomie Terrier</button>
+      </div>
+      <button class="big" onclick="startGame()">Start Chaos!</button>
+    </div>
+  </div>
+
+  <div id="game" class="screen">
+    <div id="gameWrap">
+      <canvas id="cv"></canvas>
+      <div id="hud">
+        <div class="pill">🐾 Chaos: <span id="chaosVal">0</span></div>
+        <div class="pill">⏱ <span id="timeVal">120</span>s</div>
+        <div class="pill">👀 Suspicion: <span id="susVal">0%</span></div>
+      </div>
+      <div id="combo"></div>
+      <div id="touchpad">
+        <div id="dpad">
+          <span></span><button data-k="up">▲</button><span></span>
+          <button data-k="left">◀</button><span></span><button data-k="right">▶</button>
+          <span></span><button data-k="down">▼</button><span></span>
+        </div>
+        <div class="actions">
+          <button data-k="act" style="background:var(--coral);color:#fff">Act</button>
+          <button data-k="burst">Burst</button>
+          <button data-k="sleep">Sleep</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scoreScreen" class="screen">
+    <h1 style="font-size:40px">Round Over!</h1>
+    <div class="card">
+      <table>
+        <tr><td><b>🐾 Dog Chaos Score</b></td><td id="finalChaos" style="text-align:right"></td></tr>
+        <tr><td><b>🧹 Human Task Score</b></td><td id="finalTasks" style="text-align:right"></td></tr>
+        <tr><td>Most food stolen</td><td id="statFood" style="text-align:right"></td></tr>
+        <tr><td>Objects destroyed</td><td id="statBroken" style="text-align:right"></td></tr>
+        <tr><td>Longest chase</td><td id="statChase" style="text-align:right"></td></tr>
+        <tr><td>Most suspicious moment</td><td id="statSus" style="text-align:right"></td></tr>
+      </table>
+      <div class="row">
+        <button class="big" onclick="startGame()">Play Again</button>
+        <button class="secondary" onclick="goTo('menu')">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ---------- Screen management ----------
+function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active'); if(id==='game') runGame=true; else runGame=false;}
+document.querySelectorAll('#mapChoice button, #dogChoice button').forEach(b=>{
+  b.addEventListener('click',()=>{ if(b.disabled) return;
+    [...b.parentElement.children].forEach(c=>c.classList.remove('sel')); b.classList.add('sel');});
+});
+
+// ---------- Sound (synth, no assets) ----------
+let actx; function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+function vol(){ return (document.getElementById('volSlider').value/100); }
+function beep(freq,dur,type='square',g=0.15){
+  if(vol()<=0) return; const c=ac(); const o=c.createOscillator(); const gn=c.createGain();
+  o.type=type; o.frequency.value=freq; gn.gain.value=g*vol();
+  o.connect(gn); gn.connect(c.destination); o.start();
+  gn.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+dur); o.stop(c.currentTime+dur);
+}
+const sfx={ bark:()=>{beep(520,.12,'square',.2); setTimeout(()=>beep(700,.1,'square',.15),90);},
+  steal:()=>beep(880,.15,'triangle',.2), crash:()=>{beep(120,.25,'sawtooth',.25); beep(90,.3,'square',.2);},
+  bust:()=>{beep(200,.2,'sawtooth',.3); setTimeout(()=>beep(140,.25,'sawtooth',.3),120);},
+  win:()=>{[523,659,784].forEach((f,i)=>setTimeout(()=>beep(f,.2,'triangle',.2),i*120));} };
+
+// ---------- Game state ----------
+const cv=document.getElementById('cv'); const ctx=cv.getContext('2d');
+let runGame=false, W=900,H=560;
+function fitCanvas(){ const wrap=document.getElementById('gameWrap'); cv.width=wrap.clientWidth; cv.height=wrap.clientHeight; W=cv.width;H=cv.height;}
+window.addEventListener('resize',fitCanvas);
+
+const DOGS={pup:{color:'#B5824A',speed:2.6,name:'Scrappy Pup'},hound:{color:'#7A5230',speed:2.0,name:'Lazy Hound'},terrier:{color:'#E8DCC3',speed:3.1,name:'Zoomie Terrier'}};
+
+// furniture / rooms for House map
+const ROOMS=[{x:0,y:0,w:1,h:.5,c:'#F6E3B4',n:'Kitchen'},{x:0,y:.5,w:.55,h:.5,c:'#F0D9A0',n:'Living Room'},{x:.55,y:.5,w:.45,h:.5,c:'#EAD08C',n:'Bedroom'}];
+let objects=[], footprints=[], particles=[];
+let dog, humans, chaos, susTotal, timeLeft, comboWindow, comboCount, comboTimer, stats;
+let keys={};
+
+function startGame(){
+  goTo('game'); setTimeout(fitCanvas,0);
+  const dogType=document.querySelector('#dogChoice .sel').dataset.v;
+  const d=DOGS[dogType];
+  dog={x:W*0.5,y:H*0.3,r:16,speed:d.speed,color:d.color,name:d.name,dir:1,hidden:false,hideTimer:0,burstTimer:0,burstCd:0,sleepCd:0,carrying:null,footTimer:0};
+  humans=[
+    {x:W*0.2,y:H*0.75,r:18,color:'#4C7BD9',task:'Cook food',progress:0,speed:1.1,alert:0,chaseTime:0,target:null},
+    {x:W*0.8,y:H*0.75,r:18,color:'#D96B4C',task:'Clean house',progress:0,speed:1.0,alert:0,chaseTime:0,target:null}
+  ];
+  objects=[
+    {type:'food',x:W*0.15,y:H*0.15,r:10,taken:false},
+    {type:'food',x:W*0.75,y:H*0.12,r:10,taken:false},
+    {type:'vase',x:W*0.3,y:H*0.65,r:12,broken:false},
+    {type:'vase',x:W*0.7,y:H*0.35,r:12,broken:false},
+    {type:'chair',x:W*0.5,y:H*0.85,r:14,broken:false},
+  ];
+  footprints=[]; particles=[];
+  chaos=0; susTotal=0; timeLeft=120; comboCount=0; comboTimer=0;
+  stats={food:0,broken:0,longestChase:0,peakSus:0};
+  updateHud();
+  lastTime=performance.now();
+  requestAnimationFrame(loop);
+}
+
+// input
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true; handleAction(e.key.toLowerCase());});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+document.querySelectorAll('#touchpad button[data-k]').forEach(b=>{
+  const k=b.dataset.k;
+  const map={up:'arrowup',down:'arrowdown',left:'arrowleft',right:'arrowright',act:' ',burst:'shift',sleep:'x'};
+  const start=ev=>{ev.preventDefault(); keys[map[k]]=true; if(['act','burst','sleep'].includes(k)) handleAction(map[k]);};
+  const end=ev=>{ev.preventDefault(); keys[map[k]]=false;};
+  b.addEventListener('touchstart',start); b.addEventListener('touchend',end);
+  b.addEventListener('mousedown',start); b.addEventListener('mouseup',end);
+});
+
+function handleAction(key){
+  if(!runGame) return;
+  if(key===' '){ // Act: bark / steal / knock
+    sfx.bark();
+    let acted=false;
+    objects.forEach(o=>{
+      const d=Math.hypot(o.x-dog.x,o.y-dog.y);
+      if(d<40){
+        if(o.type==='food'&&!o.taken){o.taken=true;stats.food++;addChaos(15);sfx.steal();spawnParticle(o.x,o.y,'🍖');acted=true;}
+        else if((o.type==='vase'||o.type==='chair')&&!o.broken){o.broken=true;stats.broken++;addChaos(20);sfx.crash();spawnParticle(o.x,o.y,'💥');acted=true;
+          humans.forEach(h=>{h.alert=Math.min(100,h.alert+25);});}
+      }
+    });
+    humans.forEach(h=>{ const d=Math.hypot(h.x-dog.x,h.y-dog.y); if(d<160){h.alert=Math.min(100,h.alert+ (acted?10:6));} });
+    if(!acted) addChaos(2);
+  } else if(key==='shift' && dog.burstCd<=0){
+    dog.burstTimer=45; dog.burstCd=240;
+  } else if(key==='x' && dog.sleepCd<=0){
+    dog.hidden=true; dog.hideTimer=90; dog.sleepCd=360;
+  }
+}
+
+function addChaos(n){
+  chaos+=Math.round(n*(1+comboCount*0.5));
+  comboCount++; comboTimer=100;
+  if(comboCount>=2) showCombo();
+  updateHud();
+}
+function showCombo(){
+  const el=document.getElementById('combo'); el.textContent='CHAOS COMBO x'+comboCount+'!'; el.style.opacity=1;
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.opacity=0,700);
+}
+function spawnParticle(x,y,txt){ particles.push({x,y,txt,life:40}); }
+function updateHud(){
+  document.getElementById('chaosVal').textContent=chaos;
+  document.getElementById('timeVal').textContent=Math.ceil(timeLeft);
+  const avgSus=Math.round(humans.reduce((a,h)=>a+h.alert,0)/humans.length);
+  document.getElementById('susVal').textContent=avgSus+'%';
+}
+
+let lastTime=0;
+function loop(now){
+  if(!runGame) return;
+  const dt=Math.min(2,(now-lastTime)/16.67); lastTime=now;
+  timeLeft-=dt/60; if(comboTimer>0){comboTimer-=dt; if(comboTimer<=0)comboCount=0;}
+  if(dog.burstTimer>0)dog.burstTimer-=dt; if(dog.burstCd>0)dog.burstCd-=dt;
+  if(dog.sleepCd>0)dog.sleepCd-=dt;
+  if(dog.hideTimer>0){dog.hideTimer-=dt; if(dog.hideTimer<=0)dog.hidden=false;}
+
+  // dog movement
+  let mx=0,my=0;
+  if(keys['arrowup']||keys['w'])my-=1; if(keys['arrowdown']||keys['s'])my+=1;
+  if(keys['arrowleft']||keys['a']){mx-=1;dog.dir=-1;} if(keys['arrowright']||keys['d']){mx+=1;dog.dir=1;}
+  const mag=Math.hypot(mx,my)||1; const spd=dog.speed*(dog.burstTimer>0?2.1:1);
+  dog.x=clamp(dog.x+mx/mag*spd*dt,16,W-16); dog.y=clamp(dog.y+my/mag*spd*dt,16,H-16);
+  if((mx||my)){ dog.footTimer-=dt; if(dog.footTimer<=0){footprints.push({x:dog.x,y:dog.y,life:200}); dog.footTimer=10;
+      humans.forEach(h=>{ if(Math.hypot(h.x-dog.x,h.y-dog.y)<130 && (mx||my) && !dog.hidden) h.alert=Math.min(100,h.alert+0.15*dt);});
+    }}
+  footprints.forEach(f=>f.life-=dt); footprints=footprints.filter(f=>f.life>0);
+  particles.forEach(p=>{p.life-=dt;p.y-=0.3*dt;}); particles=particles.filter(p=>p.life>0);
+
+  // humans AI
+  humans.forEach(h=>{
+    if(!h.target || Math.hypot(h.target.x-h.x,h.target.y-h.y)<10){
+      h.target={x:60+Math.random()*(W-120),y:60+Math.random()*(H-120)};
+    }
+    const dx=h.target.x-h.x, dy=h.target.y-h.y, d=Math.hypot(dx,dy)||1;
+    h.x+=dx/d*h.speed*dt; h.y+=dy/d*h.speed*dt;
+    if(!h.progress) h.progress=0;
+    h.progress+=0.05*dt;
+    if(h.progress>=100){ h.progress=0; stats.tasksDone=(stats.tasksDone||0)+1; }
+    // detection
+    const distToDog=Math.hypot(h.x-dog.x,h.y-dog.y);
+    if(distToDog<70 && !dog.hidden){ h.alert=Math.min(100,h.alert+0.6*dt); h.chaseTime+=dt/60; stats.longestChase=Math.max(stats.longestChase,h.chaseTime);}
+    else { h.alert=Math.max(0,h.alert-0.15*dt); if(distToDog>=70) h.chaseTime=Math.max(0,h.chaseTime-dt/60);}
+    stats.peakSus=Math.max(stats.peakSus,h.alert);
+    if(h.alert>=100){
+      h.alert=40; sfx.bust(); chaos=Math.max(0,chaos-25); comboCount=0;
+      dog.x=W*0.5; dog.y=H*0.2; spawnParticle(h.x,h.y-20,'❗BUSTED!');
+      updateHud();
+    }
+  });
+
+  draw();
+  updateHud();
+  if(timeLeft<=0){ endGame(); return; }
+  requestAnimationFrame(loop);
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ROOMS.forEach(r=>{ ctx.fillStyle=r.c; ctx.fillRect(r.x*W,r.y*H,r.w*W,r.h*H);
+    ctx.strokeStyle='#C98A5B'; ctx.lineWidth=4; ctx.strokeRect(r.x*W,r.y*H,r.w*W,r.h*H); });
+  footprints.forEach(f=>{ ctx.globalAlpha=Math.min(1,f.life/200)*0.5; ctx.fillStyle='#8a6a4a';
+    ctx.beginPath(); ctx.arc(f.x,f.y,4,0,7); ctx.fill(); });
+  ctx.globalAlpha=1;
+  objects.forEach(o=>{
+    if(o.type==='food'&&!o.taken){ctx.font='22px serif';ctx.fillText('🍗',o.x-11,o.y+8);}
+    if(o.type==='vase'&&!o.broken){ctx.font='24px serif';ctx.fillText('🏺',o.x-12,o.y+9);}
+    if(o.type==='chair'&&!o.broken){ctx.font='26px serif';ctx.fillText('🪑',o.x-13,o.y+9);}
+  });
+  humans.forEach(h=>{
+    ctx.fillStyle=h.color; ctx.beginPath(); ctx.arc(h.x,h.y,h.r,0,7); ctx.fill();
+    ctx.font='16px serif'; ctx.fillText('🧍',h.x-9,h.y+6);
+    // alert meter
+    ctx.fillStyle='#0002'; ctx.fillRect(h.x-20,h.y-32,40,6);
+    ctx.fillStyle=h.alert>70?'#e63946':h.alert>35?'#ffb703':'#2a9d8f'; ctx.fillRect(h.x-20,h.y-32,40*h.alert/100,6);
+    ctx.fillStyle='#3A2E28'; ctx.font='11px Baloo 2, sans-serif'; ctx.fillText(h.task+' '+Math.floor(h.progress)+'%',h.x-34,h.y+28);
+  });
+  // dog
+  ctx.save(); ctx.globalAlpha=dog.hidden?0.35:1;
+  ctx.translate(dog.x,dog.y); ctx.scale(dog.dir,1);
+  ctx.font='30px serif'; ctx.fillText(dog.burstTimer>0?'💨':'🐕',-15,10);
+  ctx.restore();
+  particles.forEach(p=>{ ctx.globalAlpha=Math.min(1,p.life/40); ctx.font='16px Baloo 2, sans-serif'; ctx.fillStyle='#e63946';
+    ctx.fillText(p.txt,p.x-10,p.y); });
+  ctx.globalAlpha=1;
+}
+
+function endGame(){
+  runGame=false; sfx.win();
+  document.getElementById('finalChaos').textContent=chaos;
+  document.getElementById('finalTasks').textContent=(stats.tasksDone||0)+' chores finished';
+  document.getElementById('statFood').textContent=stats.food;
+  document.getElementById('statBroken').textContent=stats.broken;
+  document.getElementById('statChase').textContent=stats.longestChase.toFixed(1)+'s';
+  document.getElementById('statSus').textContent=Math.round(stats.peakSus)+'%';
+  goTo('scoreScreen');
+}
+</script>
+</body>
+</html>
