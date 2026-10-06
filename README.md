@@ -1,120 +1,112 @@
-# DOG vs HUMAN — Party Game (v1.0)
+# ONE BUTTON HERO
 
-A single-player prototype of the asymmetric party game: you play a mischievous
-dog trying to maximize chaos while two AI-controlled humans try to finish
-their chores and catch you. Runs entirely in a browser — no install, no
-server, no external assets.
+A polished arcade game controlled entirely with **one button** — tap, hold, or double-tap
+your way through spikes, gaps, enemies, projectiles, falling traps, and goofy bosses.
+
+Single self-contained file: `one-button-hero.html`. No install, no dependencies,
+no external assets — just open it in a browser.
 
 ## How to run
-1. Unzip this folder.
-2. Double-click `dog-vs-human.html` (or open it in any modern browser —
-   Chrome, Safari, Firefox, Edge).
-3. Play fullscreen for the best experience. Works on desktop (keyboard) and
-   mobile/tablet (on-screen touch controls appear automatically).
+Double-click `one-button-hero.html` (or open it in any modern browser: Chrome, Safari,
+Firefox, Edge). Works on desktop and mobile.
 
-No build step, no dependencies to install, no internet connection required
-(the only external resource is the Google Font "Baloo 2"; if you're offline
-the game falls back to a system font automatically).
+## Controls (one button, five meanings)
+| Input | Effect |
+|---|---|
+| **Tap** | Jump (or Attack, if an enemy/vulnerable boss is right in front of you) |
+| **Tap while falling** | Air Recovery (short window right after your jump arcs over) |
+| **Hold** | Raise Shield (release cleanly for a "Perfect Shield") |
+| **Double-tap** | Dash (dodge projectiles / cross gaps / outrun spikes) |
+| Timing near an obstacle | "Perfect" version of the action, worth more combo/score |
 
-## Controls
-| Action | Keyboard | Touch |
-|---|---|---|
-| Move | Arrow keys / WASD | D-pad (bottom-left) |
-| Act (steal food / knock over / bark) | Space | "Act" button |
-| Speed Burst | Shift | "Burst" button |
-| Fake Sleep (become hard to notice) | X | "Sleep" button |
+Desktop: **Space** or **mouse click**. Mobile: **tap/hold anywhere on the screen**.
 
-## Core loop
-- **Chaos Meter**: earn points by stealing food, breaking vases/furniture,
-  and barking near humans. Chain actions quickly to build a combo
-  multiplier — "CHAOS COMBO x3!" pops up when you're on a streak.
-- **Suspicion**: each human has a suspicion bar that rises when they're near
-  you (and you're not hidden) or near fresh footprints. At 100% you get
-  "BUSTED" — you're teleported back to a start point and lose some chaos
-  points, and your combo resets.
-- **Footprints**: moving leaves a fading trail that raises suspicion if a
-  human walks near it. Fake Sleep also hides you from detection briefly.
-- **Tasks**: humans wander to random spots in the house and slowly complete
-  a task (progress bar + label). Every finished task adds to the Human Task
-  Score.
-- **Match length**: 120 seconds. At the end you get a score screen with:
-  - Dog Chaos Score
-  - Human Task Score (chores finished)
-  - Most food stolen
-  - Objects destroyed
-  - Longest chase
-  - Most suspicious moment (peak suspicion reached)
+## Modes
+- **Story** — normal run, first boss shows up early and they keep coming as your score climbs.
+- **Endless** — same core loop, no end, just chase your best score.
+- **Boss Rush** — back-to-back boss fights, no filler obstacles.
+- **Daily Challenge** — same obstacle pattern for everyone on a given calendar day
+  (seeded from today's date), with its own separate best score. Resets automatically
+  at midnight.
 
-## What's included in this build
-- Full menu flow: Main Menu → Settings (volume) → Setup (map + dog
-  character) → Gameplay → Score Screen → Restart.
-- One fully playable map: **House** (Kitchen / Living Room / Bedroom), with
-  stealable food, breakable vase and chair props, and two AI humans with
-  independent tasks and suspicion.
-- Three dog characters with different speed profiles: Scrappy Pup (balanced),
-  Lazy Hound (slow but steady), Zoomie Terrier (fast).
-- Two dog abilities: Speed Burst and Fake Sleep (each on its own cooldown).
-- Procedural sound effects (bark, steal, crash, busted, victory jingle) via
-  the Web Audio API — no audio files needed. Volume is adjustable in
-  Settings.
-- Illustrated, cartoon-styled UI: gradient sky, drifting cloud shapes, paw
-  print decorations, a hand-drawn-feel color palette, and a chunky rounded
-  typeface (Baloo 2) with thick outlines and drop-shadow text for a playful,
-  "kids' cartoon" tone.
-- Fully responsive: playable on phones/tablets via on-screen touch controls,
-  and the canvas resizes to fit the window.
+## Progression
+- 4 unlockable heroes (Hero, Ninja, Wizard, Robot), unlocked by beating score thresholds
+  (0 / 150 / 400 / 800). Each has its own color, which also tints your dash trail.
+- Cosmetic only — no character affects hitboxes, speed, or timing windows.
+- Everything (best score, daily best, unlocked heroes, selected hero, mute setting)
+  is saved to `localStorage` on your device, so progress persists between sessions.
 
-## What's stubbed for a future pass
-The Apartment, Backyard, Restaurant, Office, and School maps are visible
-(but disabled) in the map-select screen as a preview of what's coming. The
-remaining dog abilities (Super Bark, Invisible, Mega Jump, Food Radar) and
-human tools (Vacuum, Flashlight, Food Lure, Toy, Net, Security Camera) are
-designed for but not yet wired in.
+## Combo system
+Perfect Jump / Perfect Attack / Perfect Dodge / Perfect Shield / Perfect Air Recovery
+all build a combo multiplier shown on screen; the higher the combo, the more score
+each successful action is worth. Getting hit resets the combo to zero.
 
-## Code structure (for extending it)
-Everything lives in one self-contained file, `dog-vs-human.html`, organized
-into clearly separated sections so it's easy to extend:
+## Bosses
+Three recurring mini-bosses (Sir Flopsalot, Grumpy Cloud, Doom Duck), each with its
+own attack pattern (ground smash, falling-object rain, charging projectile), a
+telegraph warning before every attack, a health bar, and a brief "HIT ME!" vulnerable
+window after each attack where your attacks actually land. Difficulty (obstacle speed
+and spawn rate) increases the longer you survive.
 
-- **Screen management** — a simple `goTo(id)` function toggles which
-  `.screen` div is visible; add a new screen by adding a `<div class="screen">`
-  and wiring a button to `goTo()`.
-- **Sound** — `beep()` is a tiny synth helper; `sfx.*` are named presets.
-  Add a new sound by adding one more `sfx.yourName = () => beep(...)`.
-- **Game data** — `DOGS` (character stats) and `ROOMS` (map layout) are
-  plain data objects. A new map is just a new array of room rectangles plus
-  a new `objects` layout — the collision, drawing, and task logic already
-  read from these generically.
-- **`startGame()`** — resets all state for a match (dog, humans, objects,
-  stats, timer).
-- **`handleAction()`** — the dog's "Act" button logic (steal/break/bark);
-  this is the natural place to add new abilities.
-- **`loop()`** — the main per-frame update: dog movement, human AI,
-  suspicion, footprints, particles, then `draw()`.
-- **`draw()`** — all canvas rendering, kept separate from game logic so you
-  can restyle visuals without touching rules.
-- **`endGame()`** — computes and displays the score screen.
+## Audio & visuals
+All sound effects are synthesized on the fly with the Web Audio API (jump, attack,
+perfect, combo, damage, boss, victory, game over, shield, dash) — nothing to load,
+nothing to break. There's a mute button (top-left) if you'd rather play in silence.
+Colorful cartoon-arcade look with squash-and-stretch on attacks, screen shake on
+hits, particle bursts, and floating combo text.
 
-### Adding a new map
-1. Add a new entry to the map-select buttons (remove `disabled`).
-2. Define a `ROOMS`-style layout and an `objects` array for it.
-3. In `startGame()`, branch on the selected map to load the right layout.
+---
 
-### Adding a new ability
-1. Add a cooldown/timer field to the `dog` object in `startGame()`.
-2. Handle the key/button in `handleAction()` or `loop()`.
-3. Draw any visual feedback in `draw()`.
+## Bugs fixed in this pass
+This build replaces an earlier draft that had several real, playable-experience-breaking
+bugs. In case it's useful context, here's what was actually wrong and what changed:
 
-### Multiplayer note
-This build simulates both sides with AI so the core loop can be tested
-solo. Because game state (`dog`, `humans`, `objects`, `chaos`, timers) is
-already centralized in a handful of plain objects updated once per frame in
-`loop()`, it's straightforward to later swap the human AI for real player
-input, and to sync `dog`/`humans`/`objects` over a network layer (e.g.
-WebRTC or WebSockets) without restructuring the rendering or rules code.
+1. **Boss fights were unbeatable.** The boss stood far off-screen from the player's
+   fixed position, so the "is the player close enough to hit the boss" check never
+   passed — attacks always whiffed. The boss now spawns at melee range so vulnerable
+   windows are actually reachable.
+2. **Air Recovery never expired.** A timing window meant to last ~0.35s after a jump
+   was accidentally being reset to full every single frame, making the "must time it
+   right" mechanic trivial (it was always available). It now opens once per fall and
+   depletes properly, so it's a real skill window again.
+3. **Jumping over spikes/enemies was needlessly strict.** The old height check
+   required you to be near the very peak of your jump to count as "cleared," which
+   felt unfair. Clearing now just requires being airborne, with a tighter proximity
+   window rewarding a well-timed "Perfect Jump" on top.
+4. **Gaps did nothing.** They scrolled past with no collision or scoring logic at
+   all. Gaps now genuinely require a jump or dash to cross — walk into one and it's
+   game over, like every other obstacle.
+5. **Menu buttons could be blocked by the invisible tap layer.** The full-screen
+   input zone used for one-button gameplay was stacked above the menu/pause/game-over
+   screens, so clicks could land on the invisible layer instead of the button under
+   it. Z-index ordering is fixed so overlays and their buttons always receive input.
+6. **Distorted / stretched canvas on some phone screen ratios.** The game area now
+   keeps a fixed 3:2 aspect ratio using `aspect-ratio` + `dvh`-aware sizing, so it
+   always fits the screen without squashing or stretching, portrait or landscape.
+7. **Double game-over triggers.** Multiple obstacles overlapping in the same frame
+   could each independently end the run, double-counting the "new best score" save.
+   `hitPlayer` now guards against firing more than once per run.
+8. **Stale timers leaking into new runs.** Some boss attacks (e.g. the falling-object
+   "rain") schedule follow-up obstacles a fraction of a second later with
+   `setTimeout`. If you restarted mid-attack, those could land in your new run. Each
+   run now has an id, and delayed spawns check it before doing anything.
+9. **Daily Challenge wasn't actually daily.** It used the same random obstacle
+   pattern as Endless, so it wasn't a fair "same challenge for everyone" mode. It's
+   now seeded from the real calendar date (deterministic per day) with its own
+   tracked best score that resets when the date rolls over.
+10. **No mute option.** Added a persistent mute toggle (top-left speaker icon), since
+    a purely synthesized-audio game should let you turn it off.
 
-## Known limitations
-- Single map only (House) in this build.
-- No persistent high scores (nothing is saved between sessions).
-- Sound is synthesized (chiptune-style beeps), not recorded audio.
+## Known limitations (kept simple on purpose)
+- Weapons and unlockable trails beyond per-character color tinting aren't implemented —
+  only heroes/costumes are (all cosmetic, none affect gameplay).
+- Boss defeats share one particle-burst animation rather than a unique animation per boss.
+- There's no scripted "ending" — Story and Boss Rush both scale difficulty forever
+  rather than stopping after a fixed number of stages, in keeping with a
+  score-chasing arcade design.
 
-Enjoy the chaos!
+## File structure
+```
+one-button-hero.html   # the entire game — HTML, CSS, and JS in one file
+README.md              # this file
+```
